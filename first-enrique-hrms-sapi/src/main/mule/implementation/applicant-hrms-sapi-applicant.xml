@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="1365c726-cd79-4537-9515-9683695dc126" >
+		<salesforce:basic-connection username="${api.enrique.salesforce-username}" password="${api.enrique.salesforce-password}" securityToken="${api.enrique.salesforce-token}" />
+	</salesforce:sfdc-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="50b1e755-0446-470f-a827-49749d1f1fad" >
+		<db:my-sql-connection host="${db.mysql.host}" port="${db.mysql.port}" user="${db.mysql.username}" password="${db.mysql.password}" database="enrique-hrms" />
+	</db:config>
+	<sub-flow name="applicant-hrms-sapi-delete" doc:id="809b7a7e-dae0-4056-9515-b146b56caf9f" >
+		<try doc:name="Try" doc:id="c2c99f51-f40c-421a-9c4c-3b7eeed54136">
+			<choice doc:name="Choice" doc:id="0ff28128-46e1-474f-839f-90453d1e4591">
+			<when expression="#[payload != null]">
+				<db:delete doc:name="Delete" doc:id="18de903e-f5e1-42e9-9daa-8fb7d5338cf1" config-ref="Database_Config">
+			<db:sql><![CDATA[delete from applicant where id=:cid]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	cid:attributes.queryParams.cid
+}]]]></db:input-parameters>
+		</db:delete>
+				<logger level="INFO" doc:name="Logger" doc:id="844debd6-a2cb-4e01-bf5a-c23f3a909e09" message="#[payload]" />
+					<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Applicant Deleted Successfully"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+			</when>
+				<otherwise>
+					<set-payload value="Applicant Data is Not exists" doc:name="Set Payload" doc:id="4377f2ad-5d19-410d-bfa0-42b0e1eb343a" />
+					<ee:transform doc:name="Transform Message" doc:id="a7f0656a-2b3b-49bb-92d5-c6fad67feae8">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: payload
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+			</otherwise>
+		</choice>
+		</try>
+	</sub-flow>
+	<flow name="applicant-hrms-sapi-update" doc:id="dbd33cec-c6b7-49f4-9492-125afd54148a" >
+		<choice doc:name="Check if sf sync flag enabled" doc:id="10746d5a-86bb-4c2a-9923-758b88c99379">
+			<when expression="#[vars.enabledSfSynch == 'true']">
+				<logger level="INFO" doc:name="Logger" doc:id="1f9330a5-0ae2-4fa3-9c95-07d8ba40a505" />
+				<salesforce:upsert doc:name="Upsert" doc:id="477a0d8e-881a-45d7-b0d6-a90c0e44fd8b" config-ref="Salesforce_Config" objectType="Applicant__c" externalIdFieldName="Name">
+			<salesforce:records><![CDATA[#[[{
+    Name: payload.cid,
+    Applicant_Name__c: payload.applicantName,
+    Date_Of_Application__c: payload.dateOfApplication as Date {format: "yyyy-MM-dd"},
+    Job_Id__c: payload.jobId,
+    Applicant_Type__c: payload.applicantType,
+    Applicantion_Status__c: payload.applicationStatus,
+    Online_Test_Status__c: payload.onlineTestStatus,
+    Online_Test_Evaluation__c: payload.onlineTestEvaluation,
+    Score__c: payload.score,
+    Location_Preference_1__c: payload.locationPreference1,
+    Location_Preference_2__c: payload.locationPreference2,
+    Contact_Number__c: payload.contactNumber,
+    Email_Id__c: payload.emailId,
+    Current_Location__c: payload.currentLocation,
+    Qualification__c: payload.qualification,
+    College_Name__c: payload.collegeName,
+    Passout_Year__c: payload.passoutYear,
+    Programming_Skills__c: payload.programmingSkills,
+    Experience__c: payload.experience,
+    Designation__c: payload.designation,
+    Exp_In_CC__c: payload.expInCC,
+    Notice_Period__c: payload.noticePeriod,
+    Open_For_Relocation__c: payload.openForRelocation,
+    Current_Salary__c: payload.currentSalary,
+    Expected_Salary__c: payload.expectedSalary,
+    Current_Round__c: payload.currentRound,
+    Interview_Panelist__c: payload.interviewPanelist,
+    Comments__c: payload.comments
+  }]]]]></salesforce:records>
+		</salesforce:upsert>
+				<logger level="INFO" doc:name="Logger" doc:id="c691bb83-0c69-446f-b529-cf59328a5184" />
+			</when>
+			<otherwise>
+				<flow-ref doc:name="Flow Reference" doc:id="6ae808bf-34af-4bd3-94dd-b4037053baff" name="applicant-hrms-sapi-db-update" />
+			</otherwise>
+		</choice>
+	</flow>
+	<sub-flow name="applicant-hrms-sapi-db-update" doc:id="b6604cd9-c27d-4a7e-9464-8d35bb8487cb" >
+		<logger level="INFO" doc:name="Logger" doc:id="3bcc5edb-146f-46c1-b273-11ebbf85855d" />
+		<db:update doc:name="Update" doc:id="518d6db5-ef54-4350-872a-840c8c14b186" config-ref="Database_Config">
+			<db:sql ><![CDATA[update applicant set applicant_name=:applicantName,date_of_application=:dateOfApplication,jobId=:jobId,applicant_type=:applicantType,application_status=:applicationStatus,online_test_status=:onlineTestStatus,online_test_evaluation=:onlineTestEvaluation,score=:score,location_preference_1=:locationPreference1,location_preference_2=:locationPreference2,contact_number=:contactNumber,email_id=:emailId,current_location=:currentLocation,qualification=:qualification,college_name=:collegeName,passout_year=:passoutYear,programming_skills=:programmingSkills,experience=:experience,designation=:designation,exp_in_cc=:expInCC,notice_period=:noticePeriod,open_for_relocation=:openForRelocation,current_salary=:currentSalary,expected_salary=:expectedSalary,current_round=:currentRound,interview_panelist=:interviewPanelist,comments=:comments where id=:cid]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+    cid: payload.cid,
+    applicantName: payload.applicantName,
+    dateOfApplication: payload.dateOfApplication,
+    jobId: payload.jobId,
+    applicantType: payload.applicantType,
+    applicationStatus: payload.applicationStatus,
+    onlineTestStatus: payload.onlineTestStatus,
+    onlineTestEvaluation: payload.onlineTestEvaluation,
+    score: payload.score,
+    locationPreference1: payload.locationPreference1,
+    locationPreference2: payload.locationPreference2,
+    contactNumber: payload.contactNumber,
+    emailId: payload.emailId,
+    currentLocation: payload.currentLocation,
+    qualification: payload.qualification,
+    collegeName: payload.collegeName,
+    passoutYear: payload.passoutYear,
+    programmingSkills: payload.programmingSkills,
+    experience: payload.experience,
+    designation: payload.designation,
+    expInCC: payload.expInCC,
+    noticePeriod: payload.noticePeriod,
+    openForRelocation: payload.openForRelocation,
+    currentSalary: payload.currentSalary,
+    expectedSalary: payload.expectedSalary,
+    currentRound: payload.currentRound,
+    interviewPanelist: payload.interviewPanelist,
+    comments: payload.comments
+  }]]]></db:input-parameters>
+		</db:update>
+		<logger level="INFO" doc:name="Logger" doc:id="b85b6a68-574b-42cf-b5d5-f68eeb534f36" />
+	</sub-flow>
+	<flow name="applicant-hrms-sapi-add" doc:id="94f67fc1-76bb-4f18-a85d-b90edf067586" >
+		<salesforce:upsert objectType="Applicant__c" externalIdFieldName="Name" doc:name="Upsert" doc:id="63228f06-bbd6-40ad-aed0-db30dff6c079" config-ref="Salesforce_Config" target="originalPayload">
+			<salesforce:records ><![CDATA[#[[{
+    Name: payload.cid,
+    Applicant_Name__c: payload.applicantName,
+    Date_Of_Application__c: payload.dateOfApplication as Date {format: "yyyy-MM-dd"},
+    Job_Id__c: payload.jobId,
+    Applicant_Type__c: payload.applicantType,
+    Applicantion_Status__c: payload.applicationStatus,
+    Online_Test_Status__c: payload.onlineTestStatus,
+    Online_Test_Evaluation__c: payload.onlineTestEvaluation,
+    Score__c: payload.score,
+    Location_Preference_1__c: payload.locationPreference1,
+    Location_Preference_2__c: payload.locationPreference2,
+    Contact_Number__c: payload.contactNumber,
+    Email_Id__c: payload.emailId,
+    Current_Location__c: payload.currentLocation,
+    Qualification__c: payload.qualification,
+    College_Name__c: payload.collegeName,
+    Passout_Year__c: payload.passoutYear,
+    Programming_Skills__c: payload.programmingSkills,
+    Experience__c: payload.experience,
+    Designation__c: payload.designation,
+    Exp_In_CC__c: payload.expInCC,
+    Notice_Period__c: payload.noticePeriod,
+    Open_For_Relocation__c: payload.openForRelocation,
+    Current_Salary__c: payload.currentSalary,
+    Expected_Salary__c: payload.expectedSalary,
+    Current_Round__c: payload.currentRound,
+    Interview_Panelist__c: payload.interviewPanelist,
+    Comments__c: payload.comments
+  }]]]]></salesforce:records>
+		</salesforce:upsert>
+		<logger level="INFO" doc:name="Logger" doc:id="841984ea-4494-4038-8ecd-94ea3e3d825f" message="#[payload]"/>
+		<db:insert doc:name="applicant_insert" doc:id="8e7b3ad4-18fd-4336-ace5-ab38bc410a5e" config-ref="Database_Config">
+			<db:sql><![CDATA[insert into applicant values(:cid,:applicantName,:dateOfApplication,:jobId,:applicantType,:applicationStatus,:onlineTestStatus,:onlineTestEvaluation,:score,:locationPreference1,:locationPreference2,:contactNumber,:emailId,:currentLocation,:qualification,:collegeName,:passoutYear,:programmingSkills,:experience,:designation,:expInCC,:noticePeriod,:openForRelocation,:currentSalary,:expectedSalary,:currentRound,:interviewPanelist,:comments)]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+    cid: payload.cid,
+    applicantName: payload.applicantName,
+    dateOfApplication: payload.dateOfApplication,
+    jobId: payload.jobId,
+    applicantType: payload.applicantType,
+    applicationStatus: payload.applicationStatus,
+    onlineTestStatus: payload.onlineTestStatus,
+    onlineTestEvaluation: payload.onlineTestEvaluation,
+    score: payload.score,
+    locationPreference1: payload.locationPreference1,
+    locationPreference2: payload.locationPreference2,
+    contactNumber: payload.contactNumber,
+    emailId: payload.emailId,
+    currentLocation: payload.currentLocation,
+    qualification: payload.qualification,
+    collegeName: payload.collegeName,
+    passoutYear: payload.passoutYear,
+    programmingSkills: payload.programmingSkills,
+    experience: payload.experience,
+    designation: payload.designation,
+    expInCC: payload.expInCC,
+    noticePeriod: payload.noticePeriod,
+    openForRelocation: payload.openForRelocation,
+    currentSalary: payload.currentSalary,
+    expectedSalary: payload.expectedSalary,
+    currentRound: payload.currentRound,
+    interviewPanelist: payload.interviewPanelist,
+    comments: payload.comments
+  }]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Applicant Created Successfully"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="945aae92-cacd-4750-a383-4422f2631c85" />
+	</flow>
+	<flow name="applicant-hrms-sapi-getAllApplicants" doc:id="51292342-621a-4f69-9271-fd54f47cb1ec" >
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+[
+  {
+    cid: 101,
+    applicantName: "string1",
+    dateOfApplication: "2020-10-09",
+    jobId: 50001,
+    applicantType: "FRESHER",
+    applicationStatus: "SUBMITTED",
+    onlineTestStatus: "PASS",
+    onlineTestEvaluation: "string",
+    score: "200L",
+    locationPreference1: "string",
+    locationPreference2: "string",
+    locationPreference3: "string",
+    contactNumber: "string",
+    emailId: "string",
+    currentLocation: "string",
+    qualification: "string",
+    collegeName: "string",
+    passoutYear: 2020,
+    programmingSkills: "string",
+    experience: 7,
+    designation: "string",
+    expInCC: 0,
+    noticePeriod: 60,
+    openForRelocation: false,
+    currentSalary: 2020,
+    expectedSalary: 2020,
+    currentRound: "Technical",
+    interviewPanelist: "string",
+    comments: "string"
+  }, 
+  {
+    cid: 102,
+    applicantName: "string1",
+    dateOfApplication: "2020-10-09",
+    jobId: 50001,
+    applicantType: "EXPERIENCE",
+    applicationStatus: "ACCEPTED",
+    onlineTestStatus: "FAIL",
+    onlineTestEvaluation: "string",
+    score: "200L",
+    locationPreference1: "string",
+    locationPreference2: "string",
+    locationPreference3: "string",
+    contactNumber: "string",
+    emailId: "string",
+    currentLocation: "string",
+    qualification: "string",
+    collegeName: "string",
+    passoutYear: 2020,
+    programmingSkills: "string",
+    experience: 7,
+    designation: "string",
+    expInCC: 12,
+    noticePeriod: 60,
+    openForRelocation: false,
+    currentSalary: 2020,
+    expectedSalary: 2020,
+    currentRound: "Manager",
+    interviewPanelist: "string",
+    comments: "string"
+  }
+] as Array {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<db:select doc:name="Select" doc:id="3cf05518-e63c-43c0-a1f9-e8e9cbdf24a5" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from applicant]]></db:sql>
+		</db:select>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="1d416d44-0b3b-4b5c-b711-4664d042fda9" />
+	</flow>
+
+</mule>

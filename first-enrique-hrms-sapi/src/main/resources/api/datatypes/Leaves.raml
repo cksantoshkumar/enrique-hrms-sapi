@@ -1,0 +1,9 @@
+#%RAML 1.0 DataType
+type: object
+properties:
+  id: string
+  employeeId: string
+  leaveBalance: number
+  leaveType: 
+    type: !include LeaveType.raml
+  noOfLeaves: number
