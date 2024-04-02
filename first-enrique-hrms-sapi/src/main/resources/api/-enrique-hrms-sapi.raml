@@ -651,3 +651,12 @@ baseUri: http://localhost:8081/api/v1/sapi/
           application/json:
             example:
               message: FormerEmployee Deleted Successfully
+
+/policy:
+  get:
+    description: Retrieves Policy of Leaves
+    responses:
+      200:
+        body:
+          application/json:
+            type: string
