@@ -18,7 +18,8 @@ salesforce:
   
 file:
   policy:
-    path: "C:\\Users\\santoshkumar.ck\\git\\enrique-hrms-sapi\\first-enrique-hrms-sapi\\src\\main\\resources\\api\\policy\\EnriqueLeavePolicy.txt"
+    # path: "C:\\Users\\santoshkumar.ck\\git\\enrique-hrms-sapi\\first-enrique-hrms-sapi\\src\\main\\resources\\api\\policy\\EnriqueLeavePolicy.txt"
+    path: "api/policy/EnriqueLeavePolicy.txt"
     
 email:
   smtp:
