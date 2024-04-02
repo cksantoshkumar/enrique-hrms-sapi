@@ -4,7 +4,7 @@
 
 	<groupId>com.mule</groupId>
 	<artifactId>first-enrique-hrms-sapi</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<packaging>mule-application</packaging>
 
 	<name>first-enrique-hrms-sapi</name>
