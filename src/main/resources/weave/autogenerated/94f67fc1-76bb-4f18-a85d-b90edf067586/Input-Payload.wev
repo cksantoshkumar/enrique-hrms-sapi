@@ -1,0 +1,34 @@
+%dw 2.0
+
+type auto_94f67fc1_76bb_4f18_a85d_b90edf067586_Input_Payload = {
+  currentRound: "Technical" | "HR" | "Manager", 
+  currentSalary: Number, 
+  emailId: String, 
+  experience: Number, 
+  interviewPanelist: String, 
+  score: String, 
+  applicationStatus: "ACCEPTED" | "SUBMITTED" | "PENDING" | "REJECTED", 
+  applicantType: "EXPERIENCE" | "FRESHER", 
+  contactNumber: String, 
+  onlineTestEvaluation: String, 
+  expectedSalary: Number, 
+  comments: String, 
+  locationPreference1: String, 
+  programmingSkills: String, 
+  locationPreference2: String, 
+  expInCC: Number, 
+  applicantName: String, 
+  currentLocation: String, 
+  noticePeriod: Number, 
+  jobId: Number, 
+  qualification: String, 
+  collegeName: String, 
+  passoutYear: Number, 
+  dateOfApplication: String, 
+  openForRelocation: Boolean, 
+  designation: String, 
+  onlineTestStatus: "PASS" | "FAIL", 
+  cid: Number, 
+  _?: Any
+}
+
