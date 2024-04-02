@@ -1,12 +1,12 @@
 pipeline{  
 agent any 
 stages{ 
-stage('Build Application') { 
+stage('BuildApplication') { 
 steps { 
 bat 'mvn clean install' 
 } 
 } 
-stage('Deploy CloudHubs') { 
+stage('DeployCloudHubs') { 
 environment { 
 ANYPOINT_CREDENTIALS = credentials(' anypointplatformcredentials ') 
 } 
