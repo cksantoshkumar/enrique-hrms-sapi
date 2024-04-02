@@ -4,7 +4,7 @@
 
 	<groupId>com.mycompany</groupId>
 	<artifactId>first-enrique-hrms-sapi</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<packaging>mule-application</packaging>
 
 	<name>first-enrique-hrms-sapi</name>
@@ -36,8 +36,30 @@
 							<artifactId>mysql-connector-java</artifactId>
 						</sharedLibrary>
 					</sharedLibraries>
+					<classifier>---- select project type ----</classifier>
 				</configuration>
 			</plugin>
+	
+	<plugin>
+	<groupId>org.mule.tools.maven</groupId>
+	<artifactId>mule-maven-plugin</artifactId>
+	<version>${mule.maven.plugin.version}</version>
+	<extensions>true</extensions>
+		<configuration>
+			<cloudHubDeployment>
+				<uri>https://anypoint.mulesoft.com/</uri>
+				<muleVersion>${app.runtime}</muleVersion>
+				<username>${username}</username>
+				<password>${password}</password>
+				<applicationName>${project.artifactId}</applicationName>
+				<environment>Sandbox</environment>
+				<workerType>${workerType}</workerType>
+				<workers>1</workers>
+				<objectStoreV2>true</objectStoreV2>
+				<region> ${region} </region>
+			</cloudHubDeployment>
+		</configuration>
+</plugin>
 		</plugins>
 	</build>
 
@@ -87,6 +109,18 @@
 			<groupId>org.mule.connectors</groupId>
 			<artifactId>mule-email-connector</artifactId>
 			<version>1.7.2</version>
+			<classifier>mule-plugin</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.mule.connectors</groupId>
+			<artifactId>mule-file-connector</artifactId>
+			<version>1.5.1</version>
+			<classifier>mule-plugin</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.mule.connectors</groupId>
+			<artifactId>mule-objectstore-connector</artifactId>
+			<version>1.2.2</version>
 			<classifier>mule-plugin</classifier>
 		</dependency>
 	</dependencies>

@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
-http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
     <http:listener-config name="-enrique-hrms-sapi-httpListenerConfig">
         <http:listener-connection host="${httpListener.host}" port="${httpListener.port}" />
     </http:listener-config>
     <apikit:config name="-enrique-hrms-sapi-config" api="-enrique-hrms-sapi.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
-    <configuration-properties doc:name="Configuration properties" doc:id="da047f9c-330e-494d-a642-30e0e291ebd7" file="api\props\local-properties.yaml" />
+    <configuration-properties doc:name="Configuration properties" doc:id="da047f9c-330e-494d-a642-30e0e291ebd7" file="api\properties\local-properties.yaml" />
+    <file:config name="File_Config" doc:name="File Config" doc:id="6470530a-f6f1-4414-a010-a89d87a2bf40" />
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="84e4326c-5208-4e43-b775-1265bcee3cb8" >
+		<email:smtp-connection host="${email.smtp.host}" user="${email.smtp.username}" password="${email.smtp.password}" port="${email.smtp.port}"/>
+	</email:smtp-config>
 	<flow name="-enrique-hrms-sapi-main">
         <http:listener config-ref="-enrique-hrms-sapi-httpListenerConfig" path="${httpListener.path}">
             <http:response statusCode="#[vars.httpStatus default 200]">
@@ -138,9 +143,9 @@ output application/json
         </ee:transform>
     </flow>
     <flow name="put:\applicant:application\json:-enrique-hrms-sapi-config">
-        <set-variable value="${enable.sf-sync}" doc:name="Set Variable" doc:id="9f10c5e5-8de4-456d-b462-f82080209caa" variableName="enabledSfSynch"/>
-		<flow-ref doc:name="Flow Reference" doc:id="4adba7d5-cd82-47ba-b521-f31c738de92c" name="applicant-hrms-sapi-update" />
-		<ee:transform doc:name="Transform Message">
+        <set-variable value="${salesforce.enable-synch}" doc:name="Set Variable" doc:id="9f10c5e5-8de4-456d-b462-f82080209caa" variableName="enabledSfSynch" />
+        <flow-ref doc:name="Flow Reference" doc:id="4adba7d5-cd82-47ba-b521-f31c738de92c" name="applicant-hrms-sapi-update" />
+        <ee:transform doc:name="Transform Message">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -308,22 +313,21 @@ output application/json
         </ee:transform>
     </flow>
     <flow name="delete:\applicant:-enrique-hrms-sapi-config">
-		<db:query-single doc:name="Query single" doc:id="352b4b2f-f72e-4955-b777-a335255ddc42" config-ref="Database_Config" target="data">
-			<db:sql ><![CDATA[select id "ids" from applicant where id=:cid]]></db:sql>
-			<db:input-parameters ><![CDATA[#[{
+        <db:query-single doc:name="Query single" doc:id="352b4b2f-f72e-4955-b777-a335255ddc42" config-ref="Database_Config" target="data">
+            <db:sql><![CDATA[select id "ids" from applicant where id=:cid]]></db:sql>
+            <db:input-parameters><![CDATA[#[{
 	cid:attributes.queryParams.cid
 }]]]></db:input-parameters>
-		</db:query-single>
-		<ee:transform doc:name="Transform Message" doc:id="48adfebc-e39d-4ab5-8201-1888c7ce4ec2" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+        </db:query-single>
+        <ee:transform doc:name="Transform Message" doc:id="48adfebc-e39d-4ab5-8201-1888c7ce4ec2">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
-vars.data.ids
-]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-		<flow-ref doc:name="Flow Reference" doc:id="55f26ab8-b7d7-4865-ac35-1629389b28e3" name="applicant-hrms-sapi-delete" />
+vars.data.ids]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <flow-ref doc:name="Flow Reference" doc:id="55f26ab8-b7d7-4865-ac35-1629389b28e3" name="applicant-hrms-sapi-delete" />
     </flow>
     <flow name="delete:\attendance:-enrique-hrms-sapi-config">
         <ee:transform doc:name="Transform Message">
@@ -565,7 +569,13 @@ output application/json
         </ee:transform>
     </flow>
     <flow name="post:\applicant:application\json:-enrique-hrms-sapi-config">
-        <flow-ref doc:name="Flow Reference" doc:id="7ced3e95-df6f-47a8-a923-48b7cda40657" name="applicant-hrms-sapi-add" />
+        <db:query-single doc:name="Query single" doc:id="9cd0403c-ad13-4653-8618-f42858f502ac" config-ref="Database_Config" target="applicant_id">
+			<db:sql ><![CDATA[select id "applicant_id" from applicant where id=:cid]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	cid: payload.cid
+}]]]></db:input-parameters>
+		</db:query-single>
+		<flow-ref doc:name="Flow Reference" doc:id="7ced3e95-df6f-47a8-a923-48b7cda40657" name="applicant-hrms-sapi-add" />
     </flow>
     <flow name="post:\attendance:application\json:-enrique-hrms-sapi-config">
         <ee:transform doc:name="Transform Message">
@@ -710,5 +720,15 @@ output application/json
 } as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
             </ee:message>
         </ee:transform>
+    </flow>
+	<flow name="get:\policy:-enrique-hrms-sapi-config">
+        <logger level="INFO" message="get:\policy:-enrique-hrms-sapi-config" />
+		<file:read doc:id="5db08c12-9cb1-47da-b488-d822e9db87da" doc:name="Read Policy" path="${file.policy.path}" config-ref="File_Config" />
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="faa60b02-9052-432f-8435-16c84ae1f32c" />
+		<email:send doc:name="Send" doc:id="091fc1da-28a2-4acb-8d11-99c18261cf9e" config-ref="Email_SMTP" fromAddress="no-reply@mulesoft.valtech.com" subject="Policy Updted">
+			<email:to-addresses>
+				<email:to-address value="santoshkumar.ck@valtech.com" />
+			</email:to-addresses>
+		</email:send>
     </flow>
 </mule>

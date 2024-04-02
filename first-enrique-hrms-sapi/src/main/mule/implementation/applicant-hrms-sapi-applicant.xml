@@ -9,7 +9,7 @@ http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mu
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
 <salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="1365c726-cd79-4537-9515-9683695dc126" >
-		<salesforce:basic-connection username="${api.enrique.salesforce-username}" password="${api.enrique.salesforce-password}" securityToken="${api.enrique.salesforce-token}" />
+		<salesforce:basic-connection username="${salesforce.username}" password="${salesforce.password}" securityToken="${salesforce.token}" />
 	</salesforce:sfdc-config>
 	<db:config name="Database_Config" doc:name="Database Config" doc:id="50b1e755-0446-470f-a827-49749d1f1fad" >
 		<db:my-sql-connection host="${db.mysql.host}" port="${db.mysql.port}" user="${db.mysql.username}" password="${db.mysql.password}" database="enrique-hrms" />
@@ -53,7 +53,7 @@ output application/json
 		</try>
 	</sub-flow>
 	<flow name="applicant-hrms-sapi-update" doc:id="dbd33cec-c6b7-49f4-9492-125afd54148a" >
-		<choice doc:name="Check if sf sync flag enabled" doc:id="10746d5a-86bb-4c2a-9923-758b88c99379">
+		<choice doc:name="Check if salesforce sync flag enabled" doc:id="10746d5a-86bb-4c2a-9923-758b88c99379">
 			<when expression="#[vars.enabledSfSynch == 'true']">
 				<logger level="INFO" doc:name="Logger" doc:id="1f9330a5-0ae2-4fa3-9c95-07d8ba40a505" />
 				<salesforce:upsert doc:name="Upsert" doc:id="477a0d8e-881a-45d7-b0d6-a90c0e44fd8b" config-ref="Salesforce_Config" objectType="Applicant__c" externalIdFieldName="Name">
@@ -133,8 +133,10 @@ output application/json
 		<logger level="INFO" doc:name="Logger" doc:id="b85b6a68-574b-42cf-b5d5-f68eeb534f36" />
 	</sub-flow>
 	<flow name="applicant-hrms-sapi-add" doc:id="94f67fc1-76bb-4f18-a85d-b90edf067586" >
-		<salesforce:upsert objectType="Applicant__c" externalIdFieldName="Name" doc:name="Upsert" doc:id="63228f06-bbd6-40ad-aed0-db30dff6c079" config-ref="Salesforce_Config" target="originalPayload">
-			<salesforce:records ><![CDATA[#[[{
+		<choice doc:name="Choice" doc:id="c4685b02-ef0c-4f78-9f70-7a3ae4d83d3d" >
+			<when expression="#[payload == null]">
+				<salesforce:upsert objectType="Applicant__c" externalIdFieldName="Name" doc:name="Upsert" doc:id="63228f06-bbd6-40ad-aed0-db30dff6c079" config-ref="Salesforce_Config" target="originalPayload">
+			<salesforce:records><![CDATA[#[[{
     Name: payload.cid,
     Applicant_Name__c: payload.applicantName,
     Date_Of_Application__c: payload.dateOfApplication as Date {format: "yyyy-MM-dd"},
@@ -165,8 +167,8 @@ output application/json
     Comments__c: payload.comments
   }]]]]></salesforce:records>
 		</salesforce:upsert>
-		<logger level="INFO" doc:name="Logger" doc:id="841984ea-4494-4038-8ecd-94ea3e3d825f" message="#[payload]"/>
-		<db:insert doc:name="applicant_insert" doc:id="8e7b3ad4-18fd-4336-ace5-ab38bc410a5e" config-ref="Database_Config">
+				<logger level="INFO" doc:name="Logger" doc:id="841984ea-4494-4038-8ecd-94ea3e3d825f" message="#[payload]" />
+				<db:insert doc:name="applicant_insert" doc:id="8e7b3ad4-18fd-4336-ace5-ab38bc410a5e" config-ref="Database_Config">
 			<db:sql><![CDATA[insert into applicant values(:cid,:applicantName,:dateOfApplication,:jobId,:applicantType,:applicationStatus,:onlineTestStatus,:onlineTestEvaluation,:score,:locationPreference1,:locationPreference2,:contactNumber,:emailId,:currentLocation,:qualification,:collegeName,:passoutYear,:programmingSkills,:experience,:designation,:expInCC,:noticePeriod,:openForRelocation,:currentSalary,:expectedSalary,:currentRound,:interviewPanelist,:comments)]]></db:sql>
 			<db:input-parameters><![CDATA[#[{
     cid: payload.cid,
@@ -199,7 +201,7 @@ output application/json
     comments: payload.comments
   }]]]></db:input-parameters>
 		</db:insert>
-		<ee:transform doc:name="Transform Message">
+				<ee:transform doc:name="Transform Message">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -209,7 +211,21 @@ output application/json
 } as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="945aae92-cacd-4750-a383-4422f2631c85" />
+				<set-payload value="#[payload]" doc:name="Set Payload" doc:id="945aae92-cacd-4750-a383-4422f2631c85" />
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="6876cabc-0025-4bfe-9f61-49a45933fbda" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Applicant Data Already Exists: " ++ payload.cid
+}  as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
 	</flow>
 	<flow name="applicant-hrms-sapi-getAllApplicants" doc:id="51292342-621a-4f69-9271-fd54f47cb1ec" >
 		<ee:transform doc:name="Transform Message">
